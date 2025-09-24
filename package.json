@@ -1,11 +1,5 @@
 {
   "name": "dogame-nfc-api",
   "version": "1.0.0",
-  "description": "NFC API for Dogame artwork authentication",
-  "scripts": {
-    "dev": "vercel dev"
-  },
-  "dependencies": {
-    "micro": "^9.3.4"
-  }
+  "description": "NFC API for Dogame artwork authentication"
 }
