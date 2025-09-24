@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "description": "NFC API for Dogame artwork authentication",
   "scripts": {
-    "dev": "vercel dev"
+    "dev": "vercel dev",
+    "build": "echo 'No build needed'"
   },
-  "dependencies": {}
+  "dependencies": {
+    "micro": "^9.3.4"
+  },
+  "engines": {
+    "node": "18.x"
+  }
 }
