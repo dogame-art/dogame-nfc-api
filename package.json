@@ -1,5 +1,9 @@
 {
   "name": "dogame-nfc-api",
   "version": "1.0.0",
-  "description": "NFC API for Dogame artwork authentication"
+  "description": "NFC API for Dogame artwork authentication",
+  "main": "index.js",
+  "dependencies": {
+    "node": "^22.0.0"
+  }
 }
