@@ -4,6 +4,5 @@
   "description": "NFC API for Dogame artwork authentication",
   "scripts": {
     "dev": "vercel dev"
-    #test
   }
 }
