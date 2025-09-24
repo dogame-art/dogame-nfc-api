@@ -7,8 +7,5 @@
   },
   "dependencies": {
     "micro": "^9.3.4"
-  },
-  "engines": {
-    "node": "22.x"
   }
 }
