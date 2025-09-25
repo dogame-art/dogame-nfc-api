@@ -13,6 +13,22 @@ export default function handler(req, res) {
       timestamp: new Date().toISOString()
     });
   } else {
-    return res.redirect(302, `https://dogame.art/${slug}/`);
+    const html = `<!DOCTYPE html>
+    <html>
+    <head>
+      <title>Window Shopping - Dogame Art</title>
+      <meta property="og:title" content="Window Shopping" />
+      <meta property="og:description" content="Sometimes it is nice to look at it before you buy it." />
+      <meta property="og:image" content="https://dogame.art/art/image9.jpeg" />
+      <meta property="og:url" content="https://dogame.art/WindowShopping/" />
+      <meta http-equiv="refresh" content="0; url=https://dogame.art/WindowShopping/" />
+    </head>
+    <body>
+      <p>Redirecting to artwork...</p>
+    </body>
+    </html>`;
+    
+    res.setHeader('Content-Type', 'text/html');
+    return res.send(html);
   }
 }
