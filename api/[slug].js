@@ -4,15 +4,16 @@ export default function handler(req, res) {
   
   console.log(`NFC request for ${slug} from ${userAgent}`);
   
-  if (userAgent.includes('ArtCalendar') || userAgent.includes('ESP32')) {
+  if (userAgent.includes('ArduinoCalendar') || userAgent.includes('ESP32')) {
     return res.json({
       type: "exclusive",
       slug: slug,
       auth_required: true,
-      api_endpoint: `https://nfc.dogame.art/api/artwork/${slug}`,
+      api_endpoint: `https://nfc.dogame.art/artwork/${slug}`,
       timestamp: new Date().toISOString()
     });
   } else {
+    // Simple redirect for phones
     return res.redirect(302, `https://dogame.art/${slug}/`);
   }
 }
