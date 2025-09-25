@@ -4,7 +4,7 @@ export default function handler(req, res) {
   
   console.log(`NFC request for ${slug} from ${userAgent}`);
   
-  if (userAgent.includes('ArduinoCalendar') || userAgent.includes('ESP32')) {
+  if (userAgent.includes('ArtCalendar') || userAgent.includes('ESP32')) {
     return res.json({
       type: "exclusive",
       slug: slug,
@@ -13,7 +13,6 @@ export default function handler(req, res) {
       timestamp: new Date().toISOString()
     });
   } else {
-    // Simple redirect for phones
     return res.redirect(302, `https://dogame.art/${slug}/`);
   }
 }
