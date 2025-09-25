@@ -9,7 +9,7 @@ export default function handler(req, res) {
       type: "exclusive",
       slug: slug,
       auth_required: true,
-      api_endpoint: `https://nfc.dogame.art/artwork/${slug}`,
+      api_endpoint: `https://nfc.dogame.art/api/artwork/${slug}`,
       timestamp: new Date().toISOString()
     });
   } else {
