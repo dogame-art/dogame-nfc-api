@@ -1,9 +1,13 @@
 {
   "name": "dogame-nfc-api",
-  "version": "1.0.0",
-  "description": "NFC API for Dogame artwork authentication",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "Secure NFC API for Dogame artwork authentication",
   "dependencies": {
-    "node": "^22.0.0"
+    "@vercel/functions": "^1.4.1",
+    "@vercel/oidc": "^1.0.0",
+    "@edge-runtime/user-agent": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
