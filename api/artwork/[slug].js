@@ -1,76 +1,149 @@
+import { kv } from '@vercel/kv';
+import { get } from '@vercel/edge-config';
 import { getVercelOidcToken } from '@vercel/functions/oidc';
 
-// In-memory rate limiting (consider using Vercel KV for production)
-const requests = new Map();
-
-function rateLimit(ip, maxRequests = 10, windowMs = 60000) {
+// ============================================
+// RATE LIMITING - Using Vercel KV (Persistent)
+// ============================================
+async function rateLimit(ip, maxRequests = 10, windowMs = 60000) {
+  const key = `rate_limit:${ip}`;
   const now = Date.now();
+  const windowStart = now - windowMs;
   
-  if (!requests.has(ip)) {
-    requests.set(ip, []);
+  try {
+    // Get requests within the time window
+    const requests = await kv.zrangebyscore(key, windowStart, now);
+    
+    // Check if limit exceeded
+    if (requests && requests.length >= maxRequests) {
+      return false;
+    }
+    
+    // Add new request with current timestamp as score
+    await kv.zadd(key, { score: now, member: `${now}:${Math.random()}` });
+    
+    // Set expiration (slightly longer than window for cleanup)
+    await kv.expire(key, Math.ceil(windowMs / 1000) + 60);
+    
+    // Clean up old entries
+    await kv.zremrangebyscore(key, 0, windowStart);
+    
+    return true;
+  } catch (error) {
+    // Log error but allow request (fail open for availability)
+    console.error('Rate limit error:', error);
+    return true;
   }
-  
-  const userRequests = requests.get(ip);
-  const recentRequests = userRequests.filter(time => now - time < windowMs);
-  
-  if (recentRequests.length >= maxRequests) {
-    return false;
-  }
-  
-  recentRequests.push(now);
-  requests.set(ip, recentRequests);
-  return true;
 }
 
-// Move to environment variables
-const getArtworks = () => ({
-  'WindowShopping': {
-    title: process.env.ARTWORK_WINDOWSHOPPING_TITLE,
-    image_url: process.env.ARTWORK_WINDOWSHOPPING_IMAGE,
-    description: process.env.ARTWORK_WINDOWSHOPPING_DESC,
-    exclusive: true,
-    display_duration: 30000,
-    owner_authenticated: true
-  }
-});
-
+// ============================================
+// MAIN HANDLER
+// ============================================
 export default async function handler(req, res) {
   const { slug } = req.query;
   
-  // Rate limiting
-  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-  if (!rateLimit(ip)) {
-    return res.status(429).json({ error: 'Too many requests' });
+  // ============================================
+  // 1. RATE LIMITING
+  // ============================================
+  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || 
+             req.headers['x-real-ip'] || 
+             'unknown';
+  
+  if (!(await rateLimit(ip))) {
+    return res.status(429).json({ 
+      error: 'Too many requests',
+      retry_after: 60 
+    });
   }
   
-  // Validate Bearer token
+  // ============================================
+  // 2. AUTHENTICATION
+  // ============================================
   const authHeader = req.headers['authorization'];
   const validToken = process.env.NFC_AUTH_TOKEN;
   
   if (!authHeader || authHeader !== `Bearer ${validToken}`) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ 
+      error: 'Unauthorized',
+      message: 'Valid Bearer token required' 
+    });
   }
   
-  const artworks = getArtworks();
-  const artwork = artworks[slug];
+  // ============================================
+  // 3. INPUT VALIDATION
+  // ============================================
+  // Validate slug format (alphanumeric and hyphens only)
+  if (!slug || !/^[a-zA-Z0-9-]+$/.test(slug)) {
+    return res.status(400).json({ 
+      error: 'Invalid slug format',
+      message: 'Slug must contain only letters, numbers, and hyphens'
+    });
+  }
+  
+  // ============================================
+  // 4. FETCH ARTWORK FROM EDGE CONFIG
+  // ============================================
+  let artwork;
+  try {
+    artwork = await get(slug);
+  } catch (error) {
+    console.error('Edge Config error:', error);
+    return res.status(500).json({ 
+      error: 'Configuration error',
+      message: 'Unable to retrieve artwork data'
+    });
+  }
   
   if (!artwork) {
-    return res.status(404).json({ error: "Artwork not found" });
+    return res.status(404).json({ 
+      error: 'Artwork not found',
+      slug: slug 
+    });
   }
   
-  // Minimal logging (only in development)
+  // ============================================
+  // 5. OPTIONAL: OIDC TOKEN FOR MACHINE AUTH
+  // ============================================
+  let oidcToken = null;
+  if (process.env.VERCEL_OIDC_TOKEN) {
+    try {
+      oidcToken = await getVercelOidcToken();
+    } catch (error) {
+      // OIDC is optional, continue without it
+      console.warn('OIDC token generation failed:', error);
+    }
+  }
+  
+  // ============================================
+  // 6. MINIMAL LOGGING (ONLY IN DEVELOPMENT)
+  // ============================================
   if (process.env.NODE_ENV === 'development') {
-    console.log(`Artwork ${slug} accessed`);
+    console.log(`Artwork ${slug} accessed by ${ip}`);
   }
   
+  // ============================================
+  // 7. RETURN RESPONSE
+  // ============================================
   return res.json({
     success: true,
-    ...artwork,
-    access_timestamp: Date.now()
+    slug: slug,
+    artwork: {
+      title: artwork.title,
+      image_url: artwork.image_url,
+      description: artwork.description,
+      exclusive: artwork.exclusive || false,
+      display_duration: artwork.display_duration || 30000,
+    },
+    access_timestamp: Date.now(),
+    ...(oidcToken && { oidc_token: oidcToken }),
   });
 }
 
+// ============================================
+// EDGE RUNTIME CONFIGURATION
+// ============================================
 export const config = {
   runtime: 'edge',
   maxDuration: 10,
+  regions: ['iad1'], // US East - adjust based on your users
 };
