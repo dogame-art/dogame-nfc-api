@@ -1,4 +1,7 @@
-import { next } from '@vercel/functions';
+// middleware.ts
+// Place this file in your project root directory
+
+import { next } from '@vercel/edge';
 import { userAgent } from '@edge-runtime/user-agent';
 
 export const config = {
@@ -8,84 +11,23 @@ export const config = {
 export default function middleware(request: Request) {
   const ua = userAgent(request);
   
-  // ============================================
-  // 1. BOT DETECTION & BLOCKING
-  // ============================================
+  // Block known bots at the edge
   if (ua.isBot) {
-    return new Response(
-      JSON.stringify({ 
-        error: 'Forbidden',
-        message: 'Bot access not allowed' 
-      }),
-      { 
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
+    return new Response('Forbidden', { 
+      status: 403,
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+    });
   }
   
-  // ============================================
-  // 2. SUSPICIOUS USER AGENT PATTERNS
-  // ============================================
-  const suspiciousPatterns = [
-    'curl',
-    'wget',
-    'python-requests',
-    'scrapy',
-    'postman',
-  ];
+  // Add security headers to all API responses
+  const response = next();
   
-  const userAgentString = ua.ua.toLowerCase();
-  const isSuspicious = suspiciousPatterns.some(pattern => 
-    userAgentString.includes(pattern)
-  );
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
   
-  // Allow if it's the Arduino/ESP32 device
-  if (isSuspicious && 
-      !userAgentString.includes('artcalendar') && 
-      !userAgentString.includes('esp32')) {
-    return new Response(
-      JSON.stringify({ 
-        error: 'Forbidden',
-        message: 'Suspicious user agent detected' 
-      }),
-      { 
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
-  }
-  
-  // ============================================
-  // 3. ADD SECURITY HEADERS
-  // ============================================
-  return next({
-    headers: {
-      // Prevent MIME type sniffing
-      'X-Content-Type-Options': 'nosniff',
-      
-      // Prevent clickjacking
-      'X-Frame-Options': 'DENY',
-      
-      // Enable XSS protection
-      'X-XSS-Protection': '1; mode=block',
-      
-      // Referrer policy
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-      
-      // DNS prefetch control
-      'X-DNS-Prefetch-Control': 'on',
-      
-      // Permissions policy
-      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-      
-      // Additional CSP for API endpoints
-      'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none';",
-    },
-  });
+  return response;
 }
-
-export const config = {
-  runtime: 'edge', // Run on edge for best performance
-  matcher: '/api/:path*',
-};
