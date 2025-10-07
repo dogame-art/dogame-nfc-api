@@ -1,36 +1,24 @@
 {
   "name": "dogame-nfc-api",
-  "version": "2.1.0",
-  "description": "Secure NFC API for Dogame artwork authentication with persistent rate limiting",
+  "version": "2.0.0",
+  "description": "Secure NFC artwork API for dogame.art",
+  "main": "api/index.js",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "vercel dev",
     "deploy": "vercel --prod",
-    "lint": "eslint .",
-    "test": "node --test"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@vercel/functions": "^1.4.1",
-    "@vercel/oidc": "^1.0.0",
-    "@edge-runtime/user-agent": "^2.0.0",
+    "@edge-runtime/user-agent": "^1.0.0",
     "@vercel/kv": "^3.0.0",
     "@vercel/edge-config": "^1.3.0"
   },
   "devDependencies": {
-    "eslint": "^8.57.0",
-    "typescript": "^5.3.3"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "keywords": [
-    "nfc",
-    "artwork",
-    "authentication",
-    "serverless",
-    "edge-runtime",
-    "vercel"
-  ],
-  "author": "Dogame",
-  "license": "MIT"
+    "@vercel/node": "^3.2.14"
+  }
 }
