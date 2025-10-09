@@ -1,5 +1,5 @@
 // api/artwork/[slug].js
-// FIXED: Using correct @vercel/functions/oidc import
+// JSON API endpoint for Arduino devices
 
 import { getVercelOidcToken } from '@vercel/functions/oidc';
 import { userAgent } from '@edge-runtime/user-agent';
@@ -11,7 +11,7 @@ export const config = {
   maxDuration: 10,
 };
 
-// Rate limiting using Vercel KV (persistent across invocations)
+// Rate limiting using Vercel KV
 async function checkRateLimit(ip, maxRequests = 10, windowMs = 60000) {
   const key = `rate_limit:${ip}`;
   const now = Date.now();
@@ -51,7 +51,8 @@ async function checkRateLimit(ip, maxRequests = 10, windowMs = 60000) {
 }
 
 export default async function handler(req) {
-  const { slug } = req.query || {};
+  const url = new URL(req.url);
+  const slug = url.pathname.split('/').pop();
   const ua = userAgent(req);
   
   // 1. Bot Protection
@@ -83,12 +84,12 @@ export default async function handler(req) {
     });
   }
   
-  // 4. Bearer Token Authentication
+  // 4. Bearer Token Authentication (REQUIRED for API)
   const authHeader = req.headers.get('authorization');
   const validToken = process.env.NFC_AUTH_TOKEN;
   
   if (!authHeader || authHeader !== `Bearer ${validToken}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    return new Response(JSON.stringify({ error: 'Unauthorized - Bearer token required' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -116,9 +117,11 @@ export default async function handler(req) {
       });
     }
     
-    // 7. Optional: Generate OIDC token for machine-to-machine auth
+    // 7. Optional: Generate OIDC token for Arduino devices
     let oidcToken = null;
-    if (ua.browser?.name === 'ArtCalendar' || req.headers.get('x-device-type') === 'arduino') {
+    const deviceType = req.headers.get('x-device-type');
+    
+    if (deviceType === 'arduino') {
       try {
         oidcToken = await getVercelOidcToken();
       } catch (error) {
@@ -126,11 +129,15 @@ export default async function handler(req) {
       }
     }
     
-    // 8. Return artwork data
+    // 8. Return JSON response for Arduino
     return new Response(JSON.stringify({
       success: true,
       slug: slug,
-      ...artwork,
+      title: artwork.title,
+      image_url: artwork.image_url,
+      description: artwork.description,
+      exclusive: artwork.exclusive || false,
+      display_duration: artwork.display_duration || 30000,
       access_timestamp: Date.now(),
       rate_limit_remaining: rateLimit.remaining,
       ...(oidcToken && { oidc_token: oidcToken })
