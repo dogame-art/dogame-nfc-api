@@ -1,7 +1,7 @@
 {
   "name": "dogame-nfc-api",
   "version": "2.0.0",
-  "description": "Secure NFC artwork API for dogame.art",
+  "description": "NFC redirect service and Arduino artwork API for dogame.art",
   "main": "api/index.js",
   "type": "module",
   "engines": {
