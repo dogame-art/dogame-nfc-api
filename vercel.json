@@ -1,17 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
+  "redirects": [
     {
       "source": "/:slug",
-      "has": [
-        { "type": "host", "value": "nfc.dogame.art" }
-      ],
-      "destination": "/api/:slug"
+      "destination": "https://dogame.art/:slug",
+      "permanent": false
     }
   ],
   "headers": [
     {
-      "source": "/api/(.*)",
+      "source": "/(.*)",
       "headers": [
         {
           "key": "X-Content-Type-Options",
@@ -26,16 +24,21 @@
           "value": "1; mode=block"
         },
         {
-          "key": "Strict-Transport-Security",
-          "value": "max-age=63072000; includeSubDomains; preload"
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
         },
         {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'none'; script-src 'none';"
-        },
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        }
+      ]
+    },
+    {
+      "source": "/api/:path*",
+      "headers": [
         {
           "key": "Access-Control-Allow-Origin",
-          "value": "https://dogame.art"
+          "value": "*"
         },
         {
           "key": "Access-Control-Allow-Methods",
@@ -43,11 +46,7 @@
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Authorization, Content-Type"
-        },
-        {
-          "key": "Access-Control-Max-Age",
-          "value": "86400"
+          "value": "Authorization, Content-Type, Accept, X-Device-Type"
         }
       ]
     }
